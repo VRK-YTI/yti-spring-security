@@ -33,7 +33,7 @@ import java.util.Optional;
 
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
     private final String groupmanagementUrl;
     private final List<NewlyCreatedUserListener> newlyCreatedUserListeners;
