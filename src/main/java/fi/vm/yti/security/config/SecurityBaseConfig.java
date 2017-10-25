@@ -31,6 +31,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Collections.emptyList;
+
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 @EnableWebSecurity
 public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
@@ -40,12 +42,12 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     private final @Nullable FakeUserLoginProvider fakeUserLoginProvider;
 
     @Autowired
-    SecurityConfig(@Value("${groupmanagement.url}") String groupmanagementUrl,
-                   List<NewlyCreatedUserListener> newlyCreatedUserListeners,
-                   Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
+    SecurityBaseConfig(@Value("${groupmanagement.url}") String groupmanagementUrl,
+                       Optional<List<NewlyCreatedUserListener>> newlyCreatedUserListeners,
+                       Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
 
         this.groupmanagementUrl = groupmanagementUrl;
-        this.newlyCreatedUserListeners = newlyCreatedUserListeners;
+        this.newlyCreatedUserListeners = newlyCreatedUserListeners.orElse(emptyList());
         this.fakeUserLoginProvider = fakeUserLoginProvider.orElse(null);
     }
 
