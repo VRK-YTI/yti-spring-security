@@ -4,11 +4,16 @@ buildscript {
     }
 }
 
+apply plugin: 'maven-publish'
 apply plugin: 'java'
 apply plugin: 'idea'
 
 jar {
-    baseName = 'yti-authorization'
+    baseName = 'yti-spring-security'
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
 }
 
 repositories {
@@ -20,6 +25,21 @@ targetCompatibility = 1.8
 
 ext {
     springVersion = '4.2.3.RELEASE'
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId 'fi.vm.yti'
+            artifactId 'yti-spring-security'
+            version '0.1'
+
+            artifact jar
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
 }
 
 dependencies {
