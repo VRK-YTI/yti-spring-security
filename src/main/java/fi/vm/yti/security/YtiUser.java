@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.*;
 
 import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import static java.util.Collections.unmodifiableList;
 
 import static org.springframework.security.core.authority.AuthorityUtils.createAuthorityList;
@@ -91,10 +92,19 @@ public final class YtiUser implements UserDetails {
     }
 
     public boolean isInRoleInAnyOrganization(Role role, UUID... organizationIds) {
+        return isInRoleInAnyOrganization(role, Arrays.asList(organizationIds));
+    }
 
+    public boolean isInRoleInAnyOrganization(Role role, Collection<UUID> organizationIds) {
+        return isInAnyRoleInAnyOrganization(singleton(role), organizationIds);
+    }
+
+    public boolean isInAnyRoleInAnyOrganization(Collection<Role> roles, Collection<UUID> organizationIds) {
         for (UUID organizationId : organizationIds) {
-            if (this.getRolesInOrganization(organizationId).contains(role)) {
-                return true;
+            for (Role role : roles) {
+                if (this.getRolesInOrganization(organizationId).contains(role)) {
+                    return true;
+                }
             }
         }
 
