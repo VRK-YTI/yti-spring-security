@@ -2,13 +2,14 @@ package fi.vm.yti.security;
 
 public enum Role {
 
-    GROUP_ADMIN,
+    ADMIN,
     DATA_MODEL_ADMIN,
-    DATA_MODELER,
+    DATA_MODEL_EDITOR,
     TERMINOLOGY_ADMIN,
-    TERMINOLOGIST,
+    TERMINOLOGY_EDITOR,
     CODE_LIST_ADMIN,
-    CODE_LIST_EDITOR;
+    CODE_LIST_EDITOR,
+    TRANSLATOR;
 
     public static boolean contains(String roleString) {
         for (Role role : values()) {
