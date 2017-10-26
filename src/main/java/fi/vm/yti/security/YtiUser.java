@@ -123,7 +123,7 @@ public final class YtiUser implements UserDetails {
 
     @Override
     public String toString() {
-        return "YtiUserPrincipal{" +
+        return "YtiUser{" +
                 "email='" + email + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
