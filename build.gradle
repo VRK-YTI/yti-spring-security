@@ -21,7 +21,7 @@ task sourceJar(type: Jar) {
 }
 
 repositories {
-    mavenCentral()
+    jcenter()
 }
 
 sourceCompatibility = 1.8
