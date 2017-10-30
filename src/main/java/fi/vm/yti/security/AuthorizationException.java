@@ -10,6 +10,10 @@ public class AuthorizationException extends RuntimeException {
         super(message);
     }
 
+    public static void check(boolean hasRight) {
+        check(hasRight, "");
+    }
+
     public static void check(boolean hasRight, String message) {
         if (!hasRight) {
             throw new AuthorizationException(message);
