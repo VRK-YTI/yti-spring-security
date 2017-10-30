@@ -49,7 +49,7 @@ publishing {
 artifactory {
     publish {
         defaults {
-            publications('mavenJava')
+            publications('maven')
             publishArtifacts = true
             publishPom = true
         }
