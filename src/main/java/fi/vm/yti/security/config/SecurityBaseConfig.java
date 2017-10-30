@@ -93,7 +93,16 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
     @Bean
     UserProvider userProvider() {
-        return () -> (YtiUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return () -> {
+
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            if (principal instanceof YtiUser) {
+                return (YtiUser) principal;
+            } else {
+                return null;
+            }
+        };
     }
 
     @Override

@@ -1,5 +1,7 @@
 package fi.vm.yti.security;
 
+import org.jetbrains.annotations.Nullable;
+
 public interface UserProvider {
-    YtiUser getUser();
+    @Nullable YtiUser getUser();
 }
