@@ -111,88 +111,88 @@ public final class YtiUser implements UserDetails {
         return rolesInOrganizations;
     }
 
-    public Set<Role> getRolesInOrganization(UUID organizationId) {
+    public Set<Role> getRoles(UUID organizationId) {
         return rolesInOrganizations.getOrDefault(organizationId, unmodifiableSet(emptySet()));
     }
 
-    public Set<Role> getRolesInOrganizations(UUID... organizationsIds) {
-        return getRolesInOrganizations(asList(organizationsIds));
+    public Set<Role> getRoles(UUID... organizationsIds) {
+        return getRoles(asList(organizationsIds));
     }
 
-    public Set<Role> getRolesInOrganizations(Collection<UUID> organizationIds) {
+    public Set<Role> getRoles(Collection<UUID> organizationIds) {
 
         if (organizationIds.size() == 0) {
             return unmodifiableSet(emptySet());
         } else if (organizationIds.size() == 1) {
-            return getRolesInOrganization(organizationIds.iterator().next());
+            return getRoles(organizationIds.iterator().next());
         } else {
 
             Set<Role> roles = EnumSet.noneOf(Role.class);
 
             for (UUID organizationId : organizationIds) {
-                roles.addAll(getRolesInOrganization(organizationId));
+                roles.addAll(getRoles(organizationId));
             }
 
             return unmodifiableSet(roles);
         }
     }
 
-    public boolean isInRoleInAnyOrganization(Role role, UUID... organizationIds) {
-        return isInRoleInAnyOrganization(role, asList(organizationIds));
+    public boolean isInRole(Role role, UUID... organizationIds) {
+        return isInRole(role, asList(organizationIds));
     }
 
-    public boolean isInRoleInAnyOrganization(Role role, Collection<UUID> organizationIds) {
-        return isInAnyRoleInAnyOrganization(singleton(role), organizationIds);
+    public boolean isInRole(Role role, Collection<UUID> organizationIds) {
+        return isInAnyRole(singleton(role), organizationIds);
     }
 
-    public boolean isInAnyRoleInAnyOrganization(Collection<Role> roles, Collection<UUID> organizationIds) {
-        return containsAny(getRolesInOrganizations(organizationIds), roles);
+    public boolean isInAnyRole(Collection<Role> roles, Collection<UUID> organizationIds) {
+        return containsAny(getRoles(organizationIds), roles);
     }
 
     public Map<Role, Set<UUID>> getOrganizationsInRole() {
         return organizationsInRole;
     }
 
-    public Set<UUID> getOrganizationsInRole(Role role) {
+    public Set<UUID> getOrganizations(Role role) {
         return organizationsInRole.getOrDefault(role, unmodifiableSet(emptySet()));
     }
 
-    public Set<UUID> getOrganizationsInRoles(Role... roles) {
-        return getOrganizationsInRoles(asList(roles));
+    public Set<UUID> getOrganizations(Role... roles) {
+        return getOrganizations(asList(roles));
     }
 
-    public Set<UUID> getOrganizationsInRoles(Collection<Role> roles) {
+    public Set<UUID> getOrganizations(Collection<Role> roles) {
 
         if (roles.size() == 0) {
             return unmodifiableSet(emptySet());
         } else if (roles.size() == 1) {
-            return getOrganizationsInRole(roles.iterator().next());
+            return getOrganizations(roles.iterator().next());
         } else {
 
             Set<UUID> organizationIds = new HashSet<>();
 
             for (Role role : roles) {
-                organizationIds.addAll(getOrganizationsInRole(role));
+                organizationIds.addAll(getOrganizations(role));
             }
 
             return unmodifiableSet(organizationIds);
         }
     }
 
-    public boolean isInOrganizationInAnyRole(UUID organizationId) {
-        return isInOrganizationInAnyRole(organizationId, Role.values());
+    public boolean isInOrganization(UUID organizationId) {
+        return isInOrganization(organizationId, Role.values());
     }
 
-    public boolean isInOrganizationInAnyRole(UUID organizationId, Role... roles) {
-        return isInOrganizationInAnyRole(organizationId, asList(roles));
+    public boolean isInOrganization(UUID organizationId, Role... roles) {
+        return isInOrganization(organizationId, asList(roles));
     }
 
-    public boolean isInOrganizationInAnyRole(UUID organizationId, Collection<Role> roles) {
-        return isInAnyOrganizationInAnyRole(singleton(organizationId), roles);
+    public boolean isInOrganization(UUID organizationId, Collection<Role> roles) {
+        return isInAnyOrganization(singleton(organizationId), roles);
     }
 
-    public boolean isInAnyOrganizationInAnyRole(Collection<UUID> organizationsIds, Collection<Role> roles) {
-        return containsAny(getOrganizationsInRoles(roles), organizationsIds);
+    public boolean isInAnyOrganization(Collection<UUID> organizationsIds, Collection<Role> roles) {
+        return containsAny(getOrganizations(roles), organizationsIds);
     }
 
     @Override
