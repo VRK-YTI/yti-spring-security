@@ -132,6 +132,8 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
         http.antMatcher("/**/*")
                 .addFilter(authenticationFilter())
                 .addFilterBefore(filter, RequestAttributeAuthenticationFilter.class);
+
+        http.csrf().disable();
     }
 
     @Override
