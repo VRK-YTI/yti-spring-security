@@ -100,7 +100,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
             if (principal instanceof YtiUser) {
                 return (YtiUser) principal;
             } else {
-                return null;
+                return YtiUser.ANONYMOUS_USER;
             }
         };
     }

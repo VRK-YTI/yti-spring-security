@@ -20,6 +20,10 @@ public final class YtiUser implements UserDetails {
     private static final List<GrantedAuthority> ADMIN_AUTHORITIES =
             unmodifiableList(createAuthorityList("ROLE_ADMIN", "ROLE_USER"));
 
+    public static final YtiUser ANONYMOUS_USER =
+            new YtiUser(true, "anonymous@example.org", "Anonymous", "User", false, false, emptyMap());
+
+    private final boolean anonymous;
     private final String email;
     private final String firstName;
     private final String lastName;
@@ -34,7 +38,18 @@ public final class YtiUser implements UserDetails {
                    boolean superuser,
                    boolean newlyCreated,
                    Map<UUID, Set<Role>> rolesInOrganizations) {
+        this(false, email, firstName, lastName, superuser, newlyCreated, rolesInOrganizations);
+    }
 
+    private YtiUser(boolean anonymous,
+                    String email,
+                    String firstName,
+                    String lastName,
+                    boolean superuser,
+                    boolean newlyCreated,
+                    Map<UUID, Set<Role>> rolesInOrganizations) {
+
+        this.anonymous = anonymous;
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -56,6 +71,10 @@ public final class YtiUser implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return isSuperuser() ? ADMIN_AUTHORITIES : DEFAULT_AUTHORITIES;
+    }
+
+    public boolean isAnonymous() {
+        return anonymous;
     }
 
     @Override

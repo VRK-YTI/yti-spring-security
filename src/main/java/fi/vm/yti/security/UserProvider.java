@@ -1,7 +1,7 @@
 package fi.vm.yti.security;
 
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 public interface UserProvider {
-    @Nullable YtiUser getUser();
+    @NotNull YtiUser getUser();
 }
