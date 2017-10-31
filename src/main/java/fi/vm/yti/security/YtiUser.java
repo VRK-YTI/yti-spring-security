@@ -5,11 +5,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.*;
 
-import static java.util.Collections.emptySet;
-import static java.util.Collections.singleton;
-import static java.util.Collections.unmodifiableList;
-
+import static fi.vm.yti.security.util.CollectionUtil.getOrInitializeSet;
+import static fi.vm.yti.security.util.CollectionUtil.unmodifiable;
+import static java.util.Arrays.asList;
+import static java.util.Collections.*;
 import static org.springframework.security.core.authority.AuthorityUtils.createAuthorityList;
+import static org.springframework.util.CollectionUtils.containsAny;
 
 public final class YtiUser implements UserDetails {
 
@@ -25,6 +26,7 @@ public final class YtiUser implements UserDetails {
     private final boolean superuser;
     private final boolean newlyCreated;
     private final Map<UUID, Set<Role>> rolesInOrganizations;
+    private final Map<Role, Set<UUID>> organizationsInRole;
 
     public YtiUser(String email,
                    String firstName,
@@ -39,11 +41,21 @@ public final class YtiUser implements UserDetails {
         this.superuser = superuser;
         this.newlyCreated = newlyCreated;
         this.rolesInOrganizations = rolesInOrganizations;
+
+        HashMap<Role, Set<UUID>> organizationsInRole = new HashMap<>();
+
+        for (Map.Entry<UUID, Set<Role>> entry : rolesInOrganizations.entrySet()) {
+            for (Role role : entry.getValue()) {
+                getOrInitializeSet(organizationsInRole, role).add(entry.getKey());
+            }
+        }
+
+        this.organizationsInRole = unmodifiable(organizationsInRole);
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.isSuperuser() ? ADMIN_AUTHORITIES : DEFAULT_AUTHORITIES;
+        return isSuperuser() ? ADMIN_AUTHORITIES : DEFAULT_AUTHORITIES;
     }
 
     @Override
@@ -53,27 +65,27 @@ public final class YtiUser implements UserDetails {
 
     @Override
     public String getUsername() {
-        return this.email;
+        return email;
     }
 
     public String getFirstName() {
-        return this.firstName;
+        return firstName;
     }
 
     public String getLastName() {
-        return this.lastName;
+        return lastName;
     }
 
     public String getEmail() {
-        return this.email;
+        return email;
     }
 
     public boolean isSuperuser() {
-        return this.superuser;
+        return superuser;
     }
 
     public boolean isNewlyCreated() {
-        return this.newlyCreated;
+        return newlyCreated;
     }
 
     public Map<UUID, Set<Role>> getRolesInOrganizations() {
@@ -81,18 +93,26 @@ public final class YtiUser implements UserDetails {
     }
 
     public Set<Role> getRolesInOrganization(UUID organizationId) {
+        return rolesInOrganizations.getOrDefault(organizationId, unmodifiableSet(emptySet()));
+    }
 
-        Set<Role> roles = this.rolesInOrganizations.get(organizationId);
+    public Set<Role> getRolesInOrganizations(UUID... organizationsIds) {
+        return getRolesInOrganizations(asList(organizationsIds));
+    }
 
-        if (roles != null) {
-            return roles;
-        } else {
-            return emptySet();
+    public Set<Role> getRolesInOrganizations(Collection<UUID> organizationIds) {
+
+        Set<Role> roles = EnumSet.noneOf(Role.class);
+
+        for (UUID organizationId : organizationIds) {
+            roles.addAll(getRolesInOrganization(organizationId));
         }
+
+        return unmodifiableSet(roles);
     }
 
     public boolean isInRoleInAnyOrganization(Role role, UUID... organizationIds) {
-        return isInRoleInAnyOrganization(role, Arrays.asList(organizationIds));
+        return isInRoleInAnyOrganization(role, asList(organizationIds));
     }
 
     public boolean isInRoleInAnyOrganization(Role role, Collection<UUID> organizationIds) {
@@ -100,15 +120,46 @@ public final class YtiUser implements UserDetails {
     }
 
     public boolean isInAnyRoleInAnyOrganization(Collection<Role> roles, Collection<UUID> organizationIds) {
-        for (UUID organizationId : organizationIds) {
-            for (Role role : roles) {
-                if (this.getRolesInOrganization(organizationId).contains(role)) {
-                    return true;
-                }
-            }
+        return containsAny(getRolesInOrganizations(organizationIds), roles);
+    }
+
+    public Map<Role, Set<UUID>> getOrganizationsInRole() {
+        return organizationsInRole;
+    }
+
+    public Set<UUID> getOrganizationsInRole(Role role) {
+        return organizationsInRole.getOrDefault(role, unmodifiableSet(emptySet()));
+    }
+
+    public Set<UUID> getOrganizationsInRoles(Role... roles) {
+        return getOrganizationsInRoles(asList(roles));
+    }
+
+    public Set<UUID> getOrganizationsInRoles(Collection<Role> roles) {
+
+        Set<UUID> organizationIds = new HashSet<>();
+
+        for (Role role : roles) {
+            organizationIds.addAll(getOrganizationsInRole(role));
         }
 
-        return false;
+        return unmodifiableSet(organizationIds);
+    }
+
+    public boolean isInOrganizationInAnyRole(UUID organizationId) {
+        return isInOrganizationInAnyRole(organizationId, Role.values());
+    }
+
+    public boolean isInOrganizationInAnyRole(UUID organizationId, Role... roles) {
+        return isInOrganizationInAnyRole(organizationId, asList(roles));
+    }
+
+    public boolean isInOrganizationInAnyRole(UUID organizationId, Collection<Role> roles) {
+        return isInAnyOrganizationInAnyRole(singleton(organizationId), roles);
+    }
+
+    public boolean isInAnyOrganizationInAnyRole(Collection<UUID> organizationsIds, Collection<Role> roles) {
+        return containsAny(getOrganizationsInRoles(roles), organizationsIds);
     }
 
     @Override
