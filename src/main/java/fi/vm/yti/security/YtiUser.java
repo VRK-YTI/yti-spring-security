@@ -102,13 +102,20 @@ public final class YtiUser implements UserDetails {
 
     public Set<Role> getRolesInOrganizations(Collection<UUID> organizationIds) {
 
-        Set<Role> roles = EnumSet.noneOf(Role.class);
+        if (organizationIds.size() == 0) {
+            return unmodifiableSet(emptySet());
+        } else if (organizationIds.size() == 1) {
+            return getRolesInOrganization(organizationIds.iterator().next());
+        } else {
 
-        for (UUID organizationId : organizationIds) {
-            roles.addAll(getRolesInOrganization(organizationId));
+            Set<Role> roles = EnumSet.noneOf(Role.class);
+
+            for (UUID organizationId : organizationIds) {
+                roles.addAll(getRolesInOrganization(organizationId));
+            }
+
+            return unmodifiableSet(roles);
         }
-
-        return unmodifiableSet(roles);
     }
 
     public boolean isInRoleInAnyOrganization(Role role, UUID... organizationIds) {
@@ -137,13 +144,20 @@ public final class YtiUser implements UserDetails {
 
     public Set<UUID> getOrganizationsInRoles(Collection<Role> roles) {
 
-        Set<UUID> organizationIds = new HashSet<>();
+        if (roles.size() == 0) {
+            return unmodifiableSet(emptySet());
+        } else if (roles.size() == 1) {
+            return getOrganizationsInRole(roles.iterator().next());
+        } else {
 
-        for (Role role : roles) {
-            organizationIds.addAll(getOrganizationsInRole(role));
+            Set<UUID> organizationIds = new HashSet<>();
+
+            for (Role role : roles) {
+                organizationIds.addAll(getOrganizationsInRole(role));
+            }
+
+            return unmodifiableSet(organizationIds);
         }
-
-        return unmodifiableSet(organizationIds);
     }
 
     public boolean isInOrganizationInAnyRole(UUID organizationId) {
