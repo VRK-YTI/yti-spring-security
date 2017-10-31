@@ -1,7 +1,7 @@
 package fi.vm.yti.security.config;
 
 import fi.vm.yti.security.ShibbolethAuthenticationDetails;
-import fi.vm.yti.security.UserProvider;
+import fi.vm.yti.security.AuthenticatedUserProvider;
 import fi.vm.yti.security.YtiUser;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,7 +92,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    UserProvider userProvider() {
+    AuthenticatedUserProvider userProvider() {
         return () -> {
 
             Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
