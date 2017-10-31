@@ -137,6 +137,10 @@ public final class YtiUser implements UserDetails {
         }
     }
 
+    public boolean isInRoleInAnyOrganization(Role role) {
+        return !getOrganizations(role).isEmpty();
+    }
+
     public boolean isInRole(Role role, UUID... organizationIds) {
         return isInRole(role, asList(organizationIds));
     }
