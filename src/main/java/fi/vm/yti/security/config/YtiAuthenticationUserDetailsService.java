@@ -16,9 +16,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.unmodifiableMap;
-import static java.util.Collections.unmodifiableSet;
-
 public class YtiAuthenticationUserDetailsService implements AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> {
 
     private static final Log log = LogFactory.getLog(YtiAuthenticationUserDetailsService.class);
@@ -57,10 +54,10 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
                     .map(Role::valueOf)
                     .collect(Collectors.toSet());
 
-            rolesInOrganizations.put(organization.uuid, unmodifiableSet(roles));
+            rolesInOrganizations.put(organization.uuid, roles);
         }
 
-        return new YtiUser(user.email, user.firstName, user.lastName, user.superuser, user.newlyCreated, unmodifiableMap(rolesInOrganizations));
+        return new YtiUser(user.email, user.firstName, user.lastName, user.superuser, user.newlyCreated, rolesInOrganizations);
     }
 
     private static boolean isRoleMappableToEnum(String roleString) {

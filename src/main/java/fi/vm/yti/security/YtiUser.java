@@ -40,7 +40,7 @@ public final class YtiUser implements UserDetails {
         this.lastName = lastName;
         this.superuser = superuser;
         this.newlyCreated = newlyCreated;
-        this.rolesInOrganizations = rolesInOrganizations;
+        this.rolesInOrganizations = unmodifiable(rolesInOrganizations);
 
         HashMap<Role, Set<UUID>> organizationsInRole = new HashMap<>();
 
