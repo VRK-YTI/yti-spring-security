@@ -26,6 +26,8 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.springframework.util.StringUtils.isEmpty;
+
 public class YtiAuthenticationUserDetailsService implements AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> {
 
     private static final Log log = LogFactory.getLog(YtiAuthenticationUserDetailsService.class);
@@ -64,7 +66,7 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
                 .path("/public-api/user")
                 .queryParam("email", shibbolethDetails.getEmail());
 
-        if (shibbolethDetails.getFirstName() != null && shibbolethDetails.getLastName() != null) {
+        if (!isEmpty(shibbolethDetails.getFirstName()) && !isEmpty(shibbolethDetails.getLastName())) {
             uriBuilder.queryParam("firstName", shibbolethDetails.getFirstName());
             uriBuilder.queryParam("lastName", shibbolethDetails.getLastName());
         }
