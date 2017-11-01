@@ -53,7 +53,7 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
                     .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
                     .build();
 
-        } catch (NoSuchAlgorithmException |KeyManagementException |KeyStoreException e) {
+        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
             throw new RuntimeException(e);
         }
     }
