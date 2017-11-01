@@ -5,7 +5,12 @@ import fi.vm.yti.security.ShibbolethAuthenticationDetails;
 import fi.vm.yti.security.YtiUser;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContexts;
+import org.apache.http.ssl.TrustStrategy;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -13,6 +18,11 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.net.ssl.SSLContext;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,7 +35,25 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
 
     YtiAuthenticationUserDetailsService(String groupmanagementUrl) {
         this.groupmanagementUrl = groupmanagementUrl;
-        this.restTemplate = new RestTemplate(new SimpleClientHttpRequestFactory());
+        this.restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient()));
+    }
+
+    private static HttpClient httpClient() {
+
+        TrustStrategy naivelyAcceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+
+        try {
+            SSLContext sslContext = SSLContexts.custom()
+                    .loadTrustMaterial(null, naivelyAcceptingTrustStrategy)
+                    .build();
+
+            return HttpClients.custom()
+                    .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
+                    .build();
+
+        } catch (NoSuchAlgorithmException |KeyManagementException |KeyStoreException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
