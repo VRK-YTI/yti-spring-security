@@ -38,6 +38,9 @@ publishing {
             artifactId 'yti-spring-security'
             version '0.1-SNAPSHOT'
 
+            pom.withXml {
+                asNode().appendNode('description', 'Common spring security configuration')
+            }
             artifact jar
             artifact sourceJar {
                 classifier "sources"
