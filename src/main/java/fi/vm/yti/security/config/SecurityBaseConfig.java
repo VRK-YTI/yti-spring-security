@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
@@ -97,13 +98,17 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     AuthenticatedUserProvider userProvider() {
         return () -> {
 
-            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-            if (principal instanceof YtiUser) {
-                return (YtiUser) principal;
-            } else {
-                return YtiUser.ANONYMOUS_USER;
+            if (authentication != null) {
+                Object principal = authentication.getPrincipal();
+
+                if (principal instanceof YtiUser) {
+                    return (YtiUser) principal;
+                }
             }
+
+            return YtiUser.ANONYMOUS_USER;
         };
     }
 
