@@ -39,15 +39,18 @@ import static java.util.Collections.emptyList;
 public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
     private final String groupmanagementUrl;
+    private final boolean allowFakeUser;
     private final List<NewlyCreatedUserListener> newlyCreatedUserListeners;
     private final @Nullable FakeUserLoginProvider fakeUserLoginProvider;
 
     @Autowired
     SecurityBaseConfig(@Value("${groupmanagement.url}") String groupmanagementUrl,
+                       @Value("${allow.fake.user:false}") boolean allowFakeUser,
                        Optional<List<NewlyCreatedUserListener>> newlyCreatedUserListeners,
                        Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
 
         this.groupmanagementUrl = groupmanagementUrl;
+        this.allowFakeUser = fakeUserLoginProvider.isPresent() || allowFakeUser;
         this.newlyCreatedUserListeners = newlyCreatedUserListeners.orElse(emptyList());
         this.fakeUserLoginProvider = fakeUserLoginProvider.orElse(null);
     }
@@ -113,7 +116,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    protected void configure(AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(authenticationProvider());
     }
 
@@ -125,14 +128,36 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
             protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
                 // Don't inject fake user for public-api or otherwise it will end up in infinite loop
-                if (fakeUserLoginProvider != null && !request.getRequestURI().contains("public-api")) {
-                    FakeUserLogin login = fakeUserLoginProvider.getLogin();
-                    request.setAttribute("mail", login.getEmail());
-                    request.setAttribute("givenname", login.getFirstName());
-                    request.setAttribute("surname", login.getLastName());
+                if (allowFakeUser && !request.getRequestURI().contains("public-api")) {
+
+                    FakeUserLogin login = resolveFakeUserLogin(request);
+
+                    if (login != null) {
+                        request.setAttribute("mail", login.getEmail());
+                        request.setAttribute("givenname", login.getFirstName());
+                        request.setAttribute("surname", login.getLastName());
+                    }
                 }
 
                 filterChain.doFilter(request, response);
+            }
+
+            private @Nullable FakeUserLogin resolveFakeUserLogin(HttpServletRequest request) {
+
+                YtiUser user = userProvider().getUser();
+                String mail = request.getParameter("fake.login.mail");
+                String firstName = request.getParameter("fake.login.firstName");
+                String lastName = request.getParameter("fake.login.lastName");
+
+                if (mail != null) {
+                    return new FakeUserLogin(mail, firstName, lastName);
+                } else if (!user.isAnonymous()) { // keep previously logged in user still logged in
+                    return new FakeUserLogin(user.getEmail(), user.getFirstName(), user.getLastName());
+                } else if (fakeUserLoginProvider != null) {
+                    return fakeUserLoginProvider.getLogin();
+                } else {
+                    return null;
+                }
             }
         };
 
