@@ -45,7 +45,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     SecurityBaseConfig(@Value("${groupmanagement.url}") String groupmanagementUrl,
-                       @Value("${allow.fake.user:false}") boolean allowFakeUser,
+                       @Value("${fake.login.allowed:false}") boolean allowFakeUser,
                        Optional<List<NewlyCreatedUserListener>> newlyCreatedUserListeners,
                        Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
 
