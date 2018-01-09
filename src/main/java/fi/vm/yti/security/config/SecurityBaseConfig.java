@@ -129,7 +129,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
 
-        OncePerRequestFilter filter = new OncePerRequestFilter() {
+        OncePerRequestFilter fakeUserSettingFilter = new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
@@ -169,7 +169,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
         http.antMatcher("/**/*")
                 .addFilter(authenticationFilter())
-                .addFilterBefore(filter, RequestAttributeAuthenticationFilter.class);
+                .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class);
 
         http.csrf().disable();
     }
