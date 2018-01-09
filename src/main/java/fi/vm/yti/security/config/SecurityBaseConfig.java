@@ -68,11 +68,17 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     @Bean
     Filter authenticationFilter() throws Exception {
 
-        RequestAttributeAuthenticationFilter authenticationFilter = new RequestAttributeAuthenticationFilter();
+        RequestAttributeAuthenticationFilter authenticationFilter = new RequestAttributeAuthenticationFilter() {
+            @Override
+            protected boolean principalChanged(HttpServletRequest request, Authentication currentAuthentication) {
+                // need to update principal in any case since organizations might have changed
+                return true;
+            }
+        };
+
         authenticationFilter.setPrincipalEnvironmentVariable("mail");
         authenticationFilter.setExceptionIfVariableMissing(false);
         authenticationFilter.setCheckForPrincipalChanges(true);
-        authenticationFilter.setInvalidateSessionOnPrincipalChange(true);
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
         authenticationFilter.setAuthenticationManager(authenticationManager());
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
