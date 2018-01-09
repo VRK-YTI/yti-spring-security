@@ -79,6 +79,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
         authenticationFilter.setPrincipalEnvironmentVariable("mail");
         authenticationFilter.setExceptionIfVariableMissing(false);
         authenticationFilter.setCheckForPrincipalChanges(true);
+        authenticationFilter.setInvalidateSessionOnPrincipalChange(false);
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
         authenticationFilter.setAuthenticationManager(authenticationManager());
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
