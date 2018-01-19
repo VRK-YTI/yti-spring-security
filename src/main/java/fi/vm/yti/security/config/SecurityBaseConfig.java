@@ -97,6 +97,24 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    Filter logoutFilter() {
+
+        return new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
+                String loggedInUser = (String) request.getAttribute("mail");
+
+                if (loggedInUser == null || loggedInUser.isEmpty()) {
+                    SecurityContextHolder.clearContext();
+                }
+
+                filterChain.doFilter(request, response);
+            }
+        };
+    }
+
+    @Bean
     AuthenticationProvider authenticationProvider() {
 
         PreAuthenticatedAuthenticationProvider authenticationProvider = new PreAuthenticatedAuthenticationProvider();
@@ -170,7 +188,8 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
 
         http.antMatcher("/**/*")
                 .addFilter(authenticationFilter())
-                .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class);
+                .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
+                .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class);
 
         http.csrf().disable();
     }
