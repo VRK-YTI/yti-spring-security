@@ -23,6 +23,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -110,6 +111,8 @@ class User {
     public boolean superuser;
     public boolean newlyCreated;
     public List<Organization> organization;
+    public UUID id;
+    public LocalDateTime removalDateTime;
 }
 
 class Organization {
