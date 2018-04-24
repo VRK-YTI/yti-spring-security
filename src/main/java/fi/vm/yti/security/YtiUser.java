@@ -21,12 +21,13 @@ public final class YtiUser implements UserDetails {
             unmodifiableList(createAuthorityList("ROLE_ADMIN", "ROLE_USER"));
 
     public static final YtiUser ANONYMOUS_USER =
-            new YtiUser(true, "anonymous@example.org", "Anonymous", "User", false, false, emptyMap());
+            new YtiUser(true, "anonymous@example.org", "Anonymous", "User",null, false, false, emptyMap());
 
     private final boolean anonymous;
     private final String email;
     private final String firstName;
     private final String lastName;
+    private final UUID id;
     private final boolean superuser;
     private final boolean newlyCreated;
     private final Map<UUID, Set<Role>> rolesInOrganizations;
@@ -35,16 +36,18 @@ public final class YtiUser implements UserDetails {
     public YtiUser(String email,
                    String firstName,
                    String lastName,
+                   UUID id,
                    boolean superuser,
                    boolean newlyCreated,
                    Map<UUID, Set<Role>> rolesInOrganizations) {
-        this(false, email, firstName, lastName, superuser, newlyCreated, rolesInOrganizations);
+        this(false, email, firstName, lastName, id, superuser, newlyCreated, rolesInOrganizations);
     }
 
     private YtiUser(boolean anonymous,
                     String email,
                     String firstName,
                     String lastName,
+                    UUID id,
                     boolean superuser,
                     boolean newlyCreated,
                     Map<UUID, Set<Role>> rolesInOrganizations) {
@@ -53,6 +56,7 @@ public final class YtiUser implements UserDetails {
         this.email = email;
         this.firstName = firstName;
         this.lastName = lastName;
+        this.id = id;
         this.superuser = superuser;
         this.newlyCreated = newlyCreated;
         this.rolesInOrganizations = unmodifiable(rolesInOrganizations);
@@ -93,6 +97,10 @@ public final class YtiUser implements UserDetails {
 
     public String getLastName() {
         return lastName;
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     public String getEmail() {
@@ -225,6 +233,7 @@ public final class YtiUser implements UserDetails {
                 "email='" + email + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
+                ", id='" + id + '\'' +
                 ", superuser=" + superuser +
                 ", newlyCreated=" + newlyCreated +
                 ", rolesInOrganizations=" + rolesInOrganizations +

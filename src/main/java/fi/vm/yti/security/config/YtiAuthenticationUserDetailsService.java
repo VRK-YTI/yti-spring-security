@@ -88,7 +88,7 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
             rolesInOrganizations.put(organization.uuid, roles);
         }
 
-        return new YtiUser(user.email, user.firstName, user.lastName, user.superuser, user.newlyCreated, rolesInOrganizations);
+        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, rolesInOrganizations);
     }
 
     private static boolean isRoleMappableToEnum(String roleString) {
