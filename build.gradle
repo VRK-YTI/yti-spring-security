@@ -4,9 +4,11 @@ buildscript {
     }
     dependencies {
         classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '3.2.0')
+        classpath('pl.allegro.tech.build:axion-release-plugin:1.8.1')
     }
 }
 
+apply plugin: 'pl.allegro.tech.build.axion-release'
 apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
 apply plugin: 'java'
@@ -15,6 +17,15 @@ apply plugin: 'idea'
 jar {
     baseName = 'yti-spring-security'
 }
+
+scmVersion {
+    tag {
+        prefix = "v"
+        versionSeparator = ""
+    }
+}
+
+project.version = scmVersion.version
 
 task sourceJar(type: Jar) {
     from sourceSets.main.allJava
@@ -36,7 +47,7 @@ publishing {
         maven(MavenPublication) {
             groupId 'fi.vm.yti'
             artifactId 'yti-spring-security'
-            version '0.1-SNAPSHOT'
+            version project.version
 
             pom.withXml {
                 asNode().appendNode('description', 'Common spring security configuration')
