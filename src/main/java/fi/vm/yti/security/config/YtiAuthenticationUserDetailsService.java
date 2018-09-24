@@ -75,8 +75,7 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
 
         String getUserUri = uriBuilder.build().toUriString();
 
-        HttpEntity<User> request = new HttpEntity<>(new User());
-        User user = this.restTemplate.postForObject(getUserUri, request, User.class);
+        User user = this.restTemplate.postForObject(getUserUri, null, User.class);
 
         Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
