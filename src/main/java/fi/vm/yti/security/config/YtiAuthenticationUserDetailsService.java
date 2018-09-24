@@ -10,6 +10,7 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.ssl.TrustStrategy;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -74,7 +75,8 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
 
         String getUserUri = uriBuilder.build().toUriString();
 
-        User user = this.restTemplate.getForObject(getUserUri, User.class);
+        HttpEntity<User> request = new HttpEntity<>(new User());
+        User user = this.restTemplate.postForObject(getUserUri, request, User.class);
 
         Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
