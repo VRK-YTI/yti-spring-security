@@ -11,6 +11,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.ssl.TrustStrategy;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -63,19 +64,22 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
     @Override
     public UserDetails loadUserDetails(PreAuthenticatedAuthenticationToken token) throws UsernameNotFoundException {
         ShibbolethAuthenticationDetails shibbolethDetails = (ShibbolethAuthenticationDetails) token.getDetails();
+        NewUser newUser = new NewUser();
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(this.groupmanagementUrl)
-                .path("/public-api/user")
-                .queryParam("email", shibbolethDetails.getEmail());
+                .path("/public-api/user");
+        newUser.email = shibbolethDetails.getEmail();
 
         if (!isEmpty(shibbolethDetails.getFirstName()) && !isEmpty(shibbolethDetails.getLastName())) {
-            uriBuilder.queryParam("firstName", shibbolethDetails.getFirstName());
-            uriBuilder.queryParam("lastName", shibbolethDetails.getLastName());
+            newUser.firstName = shibbolethDetails.getFirstName();
+            newUser.lastName = shibbolethDetails.getLastName();
         }
 
         String getUserUri = uriBuilder.build().toUriString();
 
-        User user = this.restTemplate.postForObject(getUserUri, null, User.class);
+        HttpEntity<NewUser> request = new HttpEntity<>(newUser);
+        ResponseEntity<User> response = this.restTemplate.postForEntity(getUserUri, request, User.class);
+        User user = response.getBody();
 
         Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
@@ -102,6 +106,12 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
 
         return contains;
     }
+}
+
+class NewUser{
+    public String email;
+    public String firstName;
+    public String lastName;
 }
 
 class User {
