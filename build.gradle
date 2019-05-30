@@ -3,7 +3,6 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath(group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '4.9.5')
         classpath('pl.allegro.tech.build:axion-release-plugin:1.8.1')
     }
 }
@@ -14,7 +13,6 @@ plugins {
 }
 
 apply plugin: 'pl.allegro.tech.build.axion-release'
-apply plugin: 'com.jfrog.artifactory'
 apply plugin: 'maven-publish'
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -61,16 +59,6 @@ publishing {
             artifact sourceJar {
                 classifier "sources"
             }
-        }
-    }
-}
-
-artifactory {
-    publish {
-        defaults {
-            publications('maven')
-            publishArtifacts = true
-            publishPom = true
         }
     }
 }
