@@ -6,15 +6,16 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.UNAUTHORIZED)
 public class AuthorizationException extends RuntimeException {
 
-    public AuthorizationException(String message) {
+    public AuthorizationException(final String message) {
         super(message);
     }
 
-    public static void check(boolean hasRight) {
+    public static void check(final boolean hasRight) {
         check(hasRight, "");
     }
 
-    public static void check(boolean hasRight, String message) {
+    public static void check(final boolean hasRight,
+                             final String message) {
         if (!hasRight) {
             throw new AuthorizationException(message);
         }

@@ -1,15 +1,13 @@
 package fi.vm.yti.security.config;
 
-import fi.vm.yti.security.Role;
-import fi.vm.yti.security.ShibbolethAuthenticationDetails;
-import fi.vm.yti.security.YtiUser;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContexts;
-import org.apache.http.ssl.TrustStrategy;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -20,54 +18,31 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.net.ssl.SSLContext;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.X509Certificate;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
+import fi.vm.yti.security.Role;
+import fi.vm.yti.security.ShibbolethAuthenticationDetails;
+import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.security.util.RoleUtil;
+import static fi.vm.yti.security.config.RestTemplateConfig.httpClient;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class YtiAuthenticationUserDetailsService implements AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> {
 
-    private static final Log log = LogFactory.getLog(YtiAuthenticationUserDetailsService.class);
-
     private final RestTemplate restTemplate;
     private final String groupmanagementUrl;
 
-    YtiAuthenticationUserDetailsService(String groupmanagementUrl) {
+    YtiAuthenticationUserDetailsService(final String groupmanagementUrl) {
         this.groupmanagementUrl = groupmanagementUrl;
         this.restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient()));
     }
 
-    private static HttpClient httpClient() {
-
-        TrustStrategy naivelyAcceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
-
-        try {
-            SSLContext sslContext = SSLContexts.custom()
-                    .loadTrustMaterial(null, naivelyAcceptingTrustStrategy)
-                    .build();
-
-            return HttpClients.custom()
-                    .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
-                    .build();
-
-        } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @Override
-    public UserDetails loadUserDetails(PreAuthenticatedAuthenticationToken token) throws UsernameNotFoundException {
-        ShibbolethAuthenticationDetails shibbolethDetails = (ShibbolethAuthenticationDetails) token.getDetails();
-        NewUser newUser = new NewUser();
+    public UserDetails loadUserDetails(final PreAuthenticatedAuthenticationToken token) throws UsernameNotFoundException {
+        final ShibbolethAuthenticationDetails shibbolethDetails = (ShibbolethAuthenticationDetails) token.getDetails();
+        final NewUser newUser = new NewUser();
 
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(this.groupmanagementUrl)
-                .path("/public-api/user");
+        final UriComponentsBuilder uriBuilder = UriComponentsBuilder
+            .fromHttpUrl(this.groupmanagementUrl)
+            .path("/public-api/user");
         newUser.email = shibbolethDetails.getEmail();
 
         if (!isEmpty(shibbolethDetails.getFirstName()) && !isEmpty(shibbolethDetails.getLastName())) {
@@ -75,40 +50,29 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
             newUser.lastName = shibbolethDetails.getLastName();
         }
 
-        String getUserUri = uriBuilder.build().toUriString();
+        final String getUserUri = uriBuilder.build().toUriString();
 
-        HttpEntity<NewUser> request = new HttpEntity<>(newUser);
-        ResponseEntity<User> response = this.restTemplate.postForEntity(getUserUri, request, User.class);
-        User user = response.getBody();
+        final HttpEntity<NewUser> request = new HttpEntity<>(newUser);
+        final ResponseEntity<User> response = this.restTemplate.postForEntity(getUserUri, request, User.class);
+        final User user = response.getBody();
 
-        Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
+        final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
-        for (Organization organization : user.organization) {
-
-            Set<Role> roles = organization.role.stream()
-                    .filter(YtiAuthenticationUserDetailsService::isRoleMappableToEnum)
-                    .map(Role::valueOf)
-                    .collect(Collectors.toSet());
+        for (final Organization organization : user.organization) {
+            final Set<Role> roles = organization.role.stream()
+                .filter(RoleUtil::isRoleMappableToEnum)
+                .map(Role::valueOf)
+                .collect(Collectors.toSet());
 
             rolesInOrganizations.put(organization.uuid, roles);
         }
 
-        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, rolesInOrganizations);
-    }
-
-    private static boolean isRoleMappableToEnum(String roleString) {
-
-        boolean contains = Role.contains(roleString);
-
-        if (!contains) {
-            log.warn("Cannot map role (" + roleString + ")" + " to role enum");
-        }
-
-        return contains;
+        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
     }
 }
 
-class NewUser{
+class NewUser {
+
     public String email;
     public String firstName;
     public String lastName;
@@ -124,6 +88,8 @@ class User {
     public List<Organization> organization;
     public UUID id;
     public LocalDateTime removalDateTime;
+    public LocalDateTime tokenCreatedAt;
+    public LocalDateTime tokenInvalidationAt;
 }
 
 class Organization {

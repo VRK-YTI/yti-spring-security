@@ -1,12 +1,27 @@
 package fi.vm.yti.security.config;
 
-import fi.vm.yti.security.ShibbolethAuthenticationDetails;
-import fi.vm.yti.security.AuthenticatedUserProvider;
-import fi.vm.yti.security.YtiUser;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -21,17 +36,16 @@ import org.springframework.security.core.userdetails.AuthenticationUserDetailsSe
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationProvider;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.security.web.authentication.preauth.RequestAttributeAuthenticationFilter;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
+import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.Role;
+import fi.vm.yti.security.ShibbolethAuthenticationDetails;
+import fi.vm.yti.security.YtiUser;
+import fi.vm.yti.security.util.RoleUtil;
+import static fi.vm.yti.security.config.RestTemplateConfig.httpClient;
 import static java.util.Collections.emptyList;
 
 @EnableGlobalMethodSecurity(prePostEnabled = true)
@@ -42,17 +56,19 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     private final boolean allowFakeUser;
     private final List<NewlyCreatedUserListener> newlyCreatedUserListeners;
     private final @Nullable FakeUserLoginProvider fakeUserLoginProvider;
+    private final RestTemplate restTemplate;
 
     @Autowired
-    SecurityBaseConfig(@Value("${groupmanagement.url}") String groupmanagementUrl,
-                       @Value("${fake.login.allowed:false}") boolean allowFakeUser,
-                       Optional<List<NewlyCreatedUserListener>> newlyCreatedUserListeners,
-                       Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
+    SecurityBaseConfig(@Value("${groupmanagement.url}") final String groupmanagementUrl,
+                       @Value("${fake.login.allowed:false}") final boolean allowFakeUser,
+                       final Optional<List<NewlyCreatedUserListener>> newlyCreatedUserListeners,
+                       final Optional<FakeUserLoginProvider> fakeUserLoginProvider) {
 
         this.groupmanagementUrl = groupmanagementUrl;
         this.allowFakeUser = fakeUserLoginProvider.isPresent() || allowFakeUser;
         this.newlyCreatedUserListeners = newlyCreatedUserListeners.orElse(emptyList());
         this.fakeUserLoginProvider = fakeUserLoginProvider.orElse(null);
+        this.restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient()));
     }
 
     @Bean
@@ -68,9 +84,10 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     @Bean
     Filter authenticationFilter() throws Exception {
 
-        RequestAttributeAuthenticationFilter authenticationFilter = new RequestAttributeAuthenticationFilter() {
+        final RequestAttributeAuthenticationFilter authenticationFilter = new RequestAttributeAuthenticationFilter() {
             @Override
-            protected boolean principalChanged(HttpServletRequest request, Authentication currentAuthentication) {
+            protected boolean principalChanged(final HttpServletRequest request,
+                                               final Authentication currentAuthentication) {
                 // need to update principal in any case since organizations might have changed
                 return true;
             }
@@ -83,11 +100,9 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
         authenticationFilter.setAuthenticationManager(authenticationManager());
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
-
-            YtiUser principal = (YtiUser) authentication.getPrincipal();
-
+            final YtiUser principal = (YtiUser) authentication.getPrincipal();
             if (principal.isNewlyCreated()) {
-                for (NewlyCreatedUserListener listener : newlyCreatedUserListeners) {
+                for (final NewlyCreatedUserListener listener : newlyCreatedUserListeners) {
                     listener.onNewlyCreatedUser(principal);
                 }
             }
@@ -97,18 +112,96 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
+    Filter tokenAuthenticationFilter() {
+
+        final OncePerRequestFilter tokenAuthenticationFilter = new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(final HttpServletRequest request,
+                                            final HttpServletResponse response,
+                                            final FilterChain filterChain) throws ServletException, IOException {
+                final String token = parseToken(request.getHeader("Authorization"));
+                if (token != null) {
+                    final YtiUser ytiUser = getUserForToken(token);
+                    final TokenUserLogin login = resolveTokenUserLogin(ytiUser);
+
+                    if (login != null) {
+                        request.setAttribute("mail", login.getEmail());
+                        request.setAttribute("givenname", login.getFirstName());
+                        request.setAttribute("surname", login.getLastName());
+                    }
+                }
+                filterChain.doFilter(request, response);
+            }
+
+            private @Nullable TokenUserLogin resolveTokenUserLogin(final YtiUser ytiUser) {
+
+                if (ytiUser != null && !ytiUser.isAnonymous()) {
+                    return new TokenUserLogin(ytiUser);
+                } else {
+                    return null;
+                }
+            }
+
+            private String parseToken(final String headerString) {
+
+                if (headerString != null && !headerString.isEmpty() && headerString.startsWith("Bearer ")) {
+                    final String token = headerString.substring(7);
+                    if (!token.isEmpty()) {
+                        return token;
+                    }
+                    return null;
+                }
+                return null;
+            }
+
+            private YtiUser getUserForToken(final String token) {
+
+                final UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                    .fromHttpUrl(groupmanagementUrl)
+                    .path("/private-api/validate");
+                final String validateTokenUri = uriBuilder.build().toUriString();
+                final YtiToken ytiToken = new YtiToken(token);
+                final HttpEntity<YtiToken> tokenRequest = new HttpEntity<>(ytiToken);
+                final ResponseEntity<User> validateResponse = restTemplate.postForEntity(validateTokenUri, tokenRequest, User.class);
+                final YtiUser ytiUser;
+                if (validateResponse != null) {
+                    final User user = validateResponse.getBody();
+                    final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
+                    if (user.organization != null) {
+                        for (final Organization organization : user.organization) {
+                            final Set<Role> roles = organization.role.stream()
+                                .filter(RoleUtil::isRoleMappableToEnum)
+                                .map(Role::valueOf)
+                                .collect(Collectors.toSet());
+                            rolesInOrganizations.put(organization.uuid, roles);
+                        }
+                    }
+                    ytiUser = new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
+                    return ytiUser;
+                } else {
+                    ytiUser = null;
+                }
+                logger.info("tokenAuthenticationFilter: Token validation failed!");
+                return ytiUser;
+            }
+        };
+
+        return tokenAuthenticationFilter;
+    }
+
+    @Bean
     Filter logoutFilter() {
 
         return new OncePerRequestFilter() {
             @Override
-            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+            protected void doFilterInternal(final HttpServletRequest request,
+                                            final HttpServletResponse response,
+                                            final FilterChain filterChain) throws ServletException, IOException {
 
-                String loggedInUser = (String) request.getAttribute("mail");
-
+                final String loggedInUser = (String) request.getAttribute("mail");
                 if (loggedInUser == null || loggedInUser.isEmpty()) {
                     SecurityContextHolder.clearContext();
                 }
-
                 filterChain.doFilter(request, response);
             }
         };
@@ -117,7 +210,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     @Bean
     AuthenticationProvider authenticationProvider() {
 
-        PreAuthenticatedAuthenticationProvider authenticationProvider = new PreAuthenticatedAuthenticationProvider();
+        final PreAuthenticatedAuthenticationProvider authenticationProvider = new PreAuthenticatedAuthenticationProvider();
         authenticationProvider.setPreAuthenticatedUserDetailsService(authenticatedUserDetailsService());
         return authenticationProvider;
     }
@@ -126,10 +219,10 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     AuthenticatedUserProvider userProvider() {
         return () -> {
 
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
             if (authentication != null) {
-                Object principal = authentication.getPrincipal();
+                final Object principal = authentication.getPrincipal();
 
                 if (principal instanceof YtiUser) {
                     return (YtiUser) principal;
@@ -141,21 +234,23 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) {
+    protected void configure(final AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(authenticationProvider());
     }
 
     @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    protected void configure(final HttpSecurity http) throws Exception {
 
-        OncePerRequestFilter fakeUserSettingFilter = new OncePerRequestFilter() {
+        final OncePerRequestFilter fakeUserSettingFilter = new OncePerRequestFilter() {
             @Override
-            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+            protected void doFilterInternal(final HttpServletRequest request,
+                                            final HttpServletResponse response,
+                                            final FilterChain filterChain) throws ServletException, IOException {
 
                 // Don't inject fake user for public-api or otherwise it will end up in infinite loop
                 if (allowFakeUser && !request.getRequestURI().contains("public-api")) {
 
-                    FakeUserLogin login = resolveFakeUserLogin(request);
+                    final FakeUserLogin login = resolveFakeUserLogin(request);
 
                     if (login != null) {
                         request.setAttribute("mail", login.getEmail());
@@ -167,12 +262,12 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                 filterChain.doFilter(request, response);
             }
 
-            private @Nullable FakeUserLogin resolveFakeUserLogin(HttpServletRequest request) {
+            private @Nullable FakeUserLogin resolveFakeUserLogin(final HttpServletRequest request) {
 
-                YtiUser user = userProvider().getUser();
-                String mail = request.getParameter("fake.login.mail");
-                String firstName = request.getParameter("fake.login.firstName");
-                String lastName = request.getParameter("fake.login.lastName");
+                final YtiUser user = userProvider().getUser();
+                final String mail = request.getParameter("fake.login.mail");
+                final String firstName = request.getParameter("fake.login.firstName");
+                final String lastName = request.getParameter("fake.login.lastName");
 
                 if (mail != null) {
                     return new FakeUserLogin(mail, firstName, lastName);
@@ -187,9 +282,10 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
         };
 
         http.antMatcher("/**/*")
-                .addFilter(authenticationFilter())
-                .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
-                .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class);
+            .addFilter(authenticationFilter())
+            .addFilterBefore(tokenAuthenticationFilter(), RequestAttributeAuthenticationFilter.class)
+            .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
+            .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class);
 
         http.csrf().disable();
     }
@@ -198,3 +294,21 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) throws Exception {
     }
 }
+
+class YtiToken {
+
+    private String token;
+
+    YtiToken(final String token) {
+        this.token = token;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(final String token) {
+        this.token = token;
+    }
+}
+
