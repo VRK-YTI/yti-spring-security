@@ -1,5 +1,7 @@
 buildscript {
     repositories {
+        mavenCentral()
+        google()
         jcenter()
     }
     dependencies {
@@ -37,6 +39,8 @@ task sourceJar(type: Jar) {
 }
 
 repositories {
+    mavenCentral()
+    google()
     jcenter()
 }
 
