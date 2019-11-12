@@ -8,7 +8,9 @@ public final class FakeUserLogin {
     private final String firstName;
     private final String lastName;
 
-    public FakeUserLogin(String email, @Nullable  String firstName, @Nullable String lastName) {
+    public FakeUserLogin(final String email,
+                         @Nullable final String firstName,
+                         @Nullable final String lastName) {
         this.email = email;
         this.firstName = firstName != null ? firstName : "";
         this.lastName = lastName != null ? lastName : "";

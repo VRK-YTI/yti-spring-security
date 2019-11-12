@@ -8,8 +8,8 @@ public enum Role {
     CODE_LIST_EDITOR,
     MEMBER;
 
-    public static boolean contains(String roleString) {
-        for (Role role : values()) {
+    public static boolean contains(final String roleString) {
+        for (final Role role : values()) {
             if (role.name().equals(roleString)) {
                 return true;
             }
