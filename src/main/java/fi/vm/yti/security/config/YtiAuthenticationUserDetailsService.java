@@ -42,7 +42,7 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
 
         final UriComponentsBuilder uriBuilder = UriComponentsBuilder
             .fromHttpUrl(this.groupmanagementUrl)
-            .path("/public-api/user");
+            .path("/private-api/user");
         newUser.email = shibbolethDetails.getEmail();
 
         if (!isEmpty(shibbolethDetails.getFirstName()) && !isEmpty(shibbolethDetails.getLastName())) {
