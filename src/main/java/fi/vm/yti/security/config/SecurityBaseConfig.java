@@ -41,6 +41,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import fi.vm.yti.security.AuthenticatedUserProvider;
+import fi.vm.yti.security.AuthorizationException;
 import fi.vm.yti.security.Role;
 import fi.vm.yti.security.ShibbolethAuthenticationDetails;
 import fi.vm.yti.security.YtiUser;
@@ -121,13 +122,18 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                                             final FilterChain filterChain) throws ServletException, IOException {
                 final String token = parseToken(request.getHeader("Authorization"));
                 if (token != null) {
-                    final YtiUser ytiUser = getUserForToken(token);
-                    final TokenUserLogin login = resolveTokenUserLogin(ytiUser);
+                    try {
+                        final YtiUser ytiUser = getUserForToken(token);
+                        final TokenUserLogin login = resolveTokenUserLogin(ytiUser);
 
-                    if (login != null) {
-                        request.setAttribute("mail", login.getEmail());
-                        request.setAttribute("givenname", login.getFirstName());
-                        request.setAttribute("surname", login.getLastName());
+                        if (login != null) {
+                            request.setAttribute("mail", login.getEmail());
+                            request.setAttribute("givenname", login.getFirstName());
+                            request.setAttribute("surname", login.getLastName());
+                        }
+                    } catch (final AuthorizationException e) {
+                        logger.debug("tokenAuthenticationFilter: Token validation failed!");
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token validation failed.");
                     }
                 }
                 filterChain.doFilter(request, response);
@@ -154,7 +160,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                 return null;
             }
 
-            private YtiUser getUserForToken(final String token) {
+            private YtiUser getUserForToken(final String token) throws AuthorizationException {
 
                 final UriComponentsBuilder uriBuilder = UriComponentsBuilder
                     .fromHttpUrl(groupmanagementUrl)
@@ -163,8 +169,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                 final YtiToken ytiToken = new YtiToken(token);
                 final HttpEntity<YtiToken> tokenRequest = new HttpEntity<>(ytiToken);
                 final ResponseEntity<User> validateResponse = restTemplate.postForEntity(validateTokenUri, tokenRequest, User.class);
-                final YtiUser ytiUser;
-                if (validateResponse != null) {
+                if (validateResponse != null && validateResponse.getBody() != null) {
                     final User user = validateResponse.getBody();
                     final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
                     if (user.organization != null) {
@@ -176,13 +181,10 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                             rolesInOrganizations.put(organization.uuid, roles);
                         }
                     }
-                    ytiUser = new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
-                    return ytiUser;
+                    return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
                 } else {
-                    ytiUser = null;
+                    throw new AuthorizationException("Invalid token.");
                 }
-                logger.info("tokenAuthenticationFilter: Token validation failed!");
-                return ytiUser;
             }
         };
 
@@ -291,7 +293,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    public void configure(WebSecurity web) throws Exception {
+    public void configure(WebSecurity web) throws RuntimeException {
     }
 }
 
