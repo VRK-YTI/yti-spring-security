@@ -22,7 +22,7 @@ import static org.springframework.util.CollectionUtils.containsAny;
 
 public final class YtiUser implements UserDetails {
 
-    public static final YtiUser ANONYMOUS_USER = new YtiUser(true, "anonymous@example.org", "Anonymous", "User", null, false, false, null, null, emptyMap());
+    public static final YtiUser ANONYMOUS_USER = new YtiUser(true, "anonymous@example.org", "Anonymous", "User", null, false, false, null, null, emptyMap(), null, null);
     private static final List<GrantedAuthority> DEFAULT_AUTHORITIES = unmodifiableList(createAuthorityList("ROLE_USER"));
     private static final List<GrantedAuthority> ADMIN_AUTHORITIES = unmodifiableList(createAuthorityList("ROLE_ADMIN", "ROLE_USER"));
 
@@ -37,6 +37,8 @@ public final class YtiUser implements UserDetails {
     private final Map<Role, Set<UUID>> organizationsInRole;
     private final LocalDateTime tokenCreatedAt;
     private final LocalDateTime tokenInvalidationAt;
+    private final String containerUri;
+    private final String tokenRole;
 
     public YtiUser(final String email,
                    final String firstName,
@@ -46,8 +48,10 @@ public final class YtiUser implements UserDetails {
                    final boolean newlyCreated,
                    final LocalDateTime tokenCreatedAt,
                    final LocalDateTime tokenInvalidationAt,
-                   final Map<UUID, Set<Role>> rolesInOrganizations) {
-        this(false, email, firstName, lastName, id, superuser, newlyCreated, tokenCreatedAt, tokenInvalidationAt, rolesInOrganizations);
+                   final Map<UUID, Set<Role>> rolesInOrganizations,
+                   final String containerUri,
+                   final String tokenRole) {
+        this(false, email, firstName, lastName, id, superuser, newlyCreated, tokenCreatedAt, tokenInvalidationAt, rolesInOrganizations, containerUri, tokenRole);
     }
 
     private YtiUser(final boolean anonymous,
@@ -59,7 +63,9 @@ public final class YtiUser implements UserDetails {
                     final boolean newlyCreated,
                     final LocalDateTime tokenCreatedAt,
                     final LocalDateTime tokenInvalidationAt,
-                    final Map<UUID, Set<Role>> rolesInOrganizations) {
+                    final Map<UUID, Set<Role>> rolesInOrganizations,
+                    final String containerUri,
+                    final String tokenRole) {
 
         this.anonymous = anonymous;
         this.email = email;
@@ -70,6 +76,8 @@ public final class YtiUser implements UserDetails {
         this.newlyCreated = newlyCreated;
         this.tokenCreatedAt = tokenCreatedAt;
         this.tokenInvalidationAt = tokenInvalidationAt;
+        this.containerUri = containerUri;
+        this.tokenRole = tokenRole;
         this.rolesInOrganizations = unmodifiable(rolesInOrganizations);
 
         final HashMap<Role, Set<UUID>> organizationsInRole = new HashMap<>();
@@ -166,11 +174,19 @@ public final class YtiUser implements UserDetails {
     }
 
     public LocalDateTime getTokenCreatedAt() {
-        return this.tokenCreatedAt;
+        return tokenCreatedAt;
     }
 
     public LocalDateTime getTokenInvalidationAt() {
-        return this.tokenInvalidationAt;
+        return tokenInvalidationAt;
+    }
+
+    public String getContainerUri() {
+        return containerUri;
+    }
+
+    public String getTokenRole() {
+        return tokenRole;
     }
 
     public boolean isInRole(final Role role,
@@ -263,6 +279,8 @@ public final class YtiUser implements UserDetails {
             ", newlyCreated=" + newlyCreated +
             ", tokenCreatedAt=" + tokenCreatedAt +
             ", tokenInvalidationAt=" + tokenInvalidationAt +
+            ", containerUri=" + containerUri +
+            ", tokenRole=" + tokenRole +
             ", rolesInOrganizations=" + rolesInOrganizations +
             '}';
     }

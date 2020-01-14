@@ -50,12 +50,14 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
             newUser.lastName = shibbolethDetails.getLastName();
         }
 
-        final String getUserUri = uriBuilder.build().toUriString();
+        if (!isEmpty(shibbolethDetails.getId())) {
+            newUser.id = UUID.fromString(shibbolethDetails.getId());
+        }
 
+        final String getUserUri = uriBuilder.build().toUriString();
         final HttpEntity<NewUser> request = new HttpEntity<>(newUser);
         final ResponseEntity<User> response = this.restTemplate.postForEntity(getUserUri, request, User.class);
         final User user = response.getBody();
-
         final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
         for (final Organization organization : user.organization) {
@@ -63,16 +65,16 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
                 .filter(RoleUtil::isRoleMappableToEnum)
                 .map(Role::valueOf)
                 .collect(Collectors.toSet());
-
             rolesInOrganizations.put(organization.uuid, roles);
         }
 
-        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
+        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
     }
 }
 
 class NewUser {
 
+    public UUID id;
     public String email;
     public String firstName;
     public String lastName;
@@ -90,6 +92,8 @@ class User {
     public LocalDateTime removalDateTime;
     public LocalDateTime tokenCreatedAt;
     public LocalDateTime tokenInvalidationAt;
+    public String containerUri;
+    public String tokenRole;
 }
 
 class Organization {

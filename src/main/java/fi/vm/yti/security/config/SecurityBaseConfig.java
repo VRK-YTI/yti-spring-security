@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -58,6 +59,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
     private final List<NewlyCreatedUserListener> newlyCreatedUserListeners;
     private final @Nullable FakeUserLoginProvider fakeUserLoginProvider;
     private final RestTemplate restTemplate;
+    private static final String HEADER_YTITOKEN = "YTITOKEN";
 
     @Autowired
     SecurityBaseConfig(@Value("${groupmanagement.url}") final String groupmanagementUrl,
@@ -120,20 +122,34 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
             protected void doFilterInternal(final HttpServletRequest request,
                                             final HttpServletResponse response,
                                             final FilterChain filterChain) throws ServletException, IOException {
-                final String token = parseToken(request.getHeader("Authorization"));
-                if (token != null) {
+
+                String token = parseToken(request.getHeader("Authorization"));
+                if (token == null) {
+                    final Cookie[] cookies = request.getCookies();
+                    if (cookies != null && cookies.length > 0) {
+                        for (final Cookie cookie : cookies) {
+                            if (HEADER_YTITOKEN.equalsIgnoreCase(cookie.getName())) {
+                                token = cookie.getValue();
+                            }
+                        }
+                    }
+                }
+                if (token != null && !token.isEmpty()) {
                     try {
                         final YtiUser ytiUser = getUserForToken(token);
                         final TokenUserLogin login = resolveTokenUserLogin(ytiUser);
-
                         if (login != null) {
+                            request.setAttribute("id", login.getId());
                             request.setAttribute("mail", login.getEmail());
                             request.setAttribute("givenname", login.getFirstName());
                             request.setAttribute("surname", login.getLastName());
                         }
                     } catch (final AuthorizationException e) {
                         logger.debug("tokenAuthenticationFilter: Token validation failed!");
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token validation failed.");
+                        if (!request.getPathInfo().contains("redirect")) {
+                            response.setHeader("Set-Cookie", HEADER_YTITOKEN + "=deleted;path=/;HttpOnly;expires=Thu, 01 Jan 1970 00:00:00 GMT");
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token validation failed.");
+                        }
                     }
                 }
                 filterChain.doFilter(request, response);
@@ -181,7 +197,7 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                             rolesInOrganizations.put(organization.uuid, roles);
                         }
                     }
-                    return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations);
+                    return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
                 } else {
                     throw new AuthorizationException("Invalid token.");
                 }
