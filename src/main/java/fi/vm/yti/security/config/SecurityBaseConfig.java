@@ -187,20 +187,21 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                 final ResponseEntity<User> validateResponse = restTemplate.postForEntity(validateTokenUri, tokenRequest, User.class);
                 if (validateResponse != null && validateResponse.getBody() != null) {
                     final User user = validateResponse.getBody();
-                    final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
-                    if (user.organization != null) {
-                        for (final Organization organization : user.organization) {
-                            final Set<Role> roles = organization.role.stream()
-                                .filter(RoleUtil::isRoleMappableToEnum)
-                                .map(Role::valueOf)
-                                .collect(Collectors.toSet());
-                            rolesInOrganizations.put(organization.uuid, roles);
+                    if (user != null) {
+                        final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
+                        if (user.organization != null) {
+                            for (final Organization organization : user.organization) {
+                                final Set<Role> roles = organization.role.stream()
+                                    .filter(RoleUtil::isRoleMappableToEnum)
+                                    .map(Role::valueOf)
+                                    .collect(Collectors.toSet());
+                                rolesInOrganizations.put(organization.uuid, roles);
+                            }
                         }
+                        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
                     }
-                    return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
-                } else {
-                    throw new AuthorizationException("Invalid token.");
                 }
+                throw new AuthorizationException("Invalid token.");
             }
         };
 
