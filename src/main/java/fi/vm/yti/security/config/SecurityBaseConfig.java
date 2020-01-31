@@ -152,7 +152,8 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                         request.setAttribute("surname", null);
                         if (!request.getPathInfo().contains("redirect")) {
                             response.setHeader("Set-Cookie", HEADER_YTITOKEN + "=deleted;path=/;HttpOnly;expires=Thu, 01 Jan 1970 00:00:00 GMT");
-                            response.sendRedirect(request.getRequestURL().toString());
+                            final String redirectUrl = request.getRequestURL().toString().replace("http://", "https://");
+                            response.sendRedirect(redirectUrl);
                         }
                     }
                 }
