@@ -146,9 +146,13 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
                         }
                     } catch (final AuthorizationException e) {
                         logger.debug("tokenAuthenticationFilter: Token validation failed!");
+                        request.setAttribute("id", null);
+                        request.setAttribute("mail", null);
+                        request.setAttribute("givenname", null);
+                        request.setAttribute("surname", null);
                         if (!request.getPathInfo().contains("redirect")) {
                             response.setHeader("Set-Cookie", HEADER_YTITOKEN + "=deleted;path=/;HttpOnly;expires=Thu, 01 Jan 1970 00:00:00 GMT");
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token validation failed.");
+                            response.sendRedirect(request.getRequestURI());
                         }
                     }
                 }
