@@ -313,7 +313,10 @@ public class SecurityBaseConfig extends WebSecurityConfigurerAdapter {
             .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class);
 
         http.csrf().disable();
-        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        if (!allowFakeUser) {
+            http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+        }
     }
 
     @Override
