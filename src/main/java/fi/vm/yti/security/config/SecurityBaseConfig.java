@@ -98,7 +98,7 @@ public class SecurityBaseConfig {
         authenticationFilter.setCheckForPrincipalChanges(true);
         authenticationFilter.setInvalidateSessionOnPrincipalChange(false);
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
-        // authenticationFilter.setAuthenticationManager(null);
+        authenticationFilter.setAuthenticationManager(authentication -> authentication);
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
             final YtiUser principal = (YtiUser) authentication.getPrincipal();
             if (principal.isNewlyCreated()) {
