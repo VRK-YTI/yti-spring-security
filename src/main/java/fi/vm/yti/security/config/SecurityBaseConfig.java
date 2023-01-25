@@ -25,7 +25,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -99,7 +98,7 @@ public class SecurityBaseConfig {
         authenticationFilter.setCheckForPrincipalChanges(true);
         authenticationFilter.setInvalidateSessionOnPrincipalChange(false);
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
-        authenticationFilter.setAuthenticationManager(authentication -> authentication);
+        // authenticationFilter.setAuthenticationManager(null);
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
             final YtiUser principal = (YtiUser) authentication.getPrincipal();
             if (principal.isNewlyCreated()) {
@@ -254,9 +253,9 @@ public class SecurityBaseConfig {
         };
     }
 
-    protected void configure(final AuthenticationManagerBuilder auth) {
-        auth.authenticationProvider(authenticationProvider());
-    }
+    //protected void configure(final AuthenticationManagerBuilder auth) {
+    //    auth.authenticationProvider(authenticationProvider());
+    //}
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -302,14 +301,13 @@ public class SecurityBaseConfig {
         };
 
         return http
-            //.authorizeHttpRequests().anyRequest().authenticated()
-            //.and()
-            .addFilter(authenticationFilter())
-            .addFilterBefore(tokenAuthenticationFilter(), RequestAttributeAuthenticationFilter.class)
-            .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
-            .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class)
-            .csrf().disable()
-            .build();
+                .authenticationProvider(authenticationProvider())
+                .addFilter(authenticationFilter())
+                .addFilterBefore(tokenAuthenticationFilter(), RequestAttributeAuthenticationFilter.class)
+                .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
+                .addFilterBefore(logoutFilter(), RequestAttributeAuthenticationFilter.class)
+                .csrf().disable()
+                .build();
     }
 
 }
