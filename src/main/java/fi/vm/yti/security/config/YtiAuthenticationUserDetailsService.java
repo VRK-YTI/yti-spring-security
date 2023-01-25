@@ -23,7 +23,6 @@ import fi.vm.yti.security.ShibbolethAuthenticationDetails;
 import fi.vm.yti.security.YtiUser;
 import fi.vm.yti.security.util.RoleUtil;
 import static fi.vm.yti.security.config.RestTemplateConfig.httpClient;
-import static org.springframework.util.StringUtils.isEmpty;
 
 public class YtiAuthenticationUserDetailsService implements AuthenticationUserDetailsService<PreAuthenticatedAuthenticationToken> {
 
@@ -45,12 +44,12 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
             .path("/private-api/user");
         newUser.email = shibbolethDetails.getEmail();
 
-        if (!isEmpty(shibbolethDetails.getFirstName()) && !isEmpty(shibbolethDetails.getLastName())) {
+        if (hasValue(shibbolethDetails.getFirstName()) && hasValue(shibbolethDetails.getLastName())) {
             newUser.firstName = shibbolethDetails.getFirstName();
             newUser.lastName = shibbolethDetails.getLastName();
         }
 
-        if (!isEmpty(shibbolethDetails.getId())) {
+        if (hasValue(shibbolethDetails.getId())) {
             newUser.id = UUID.fromString(shibbolethDetails.getId());
         }
 
@@ -60,15 +59,23 @@ public class YtiAuthenticationUserDetailsService implements AuthenticationUserDe
         final User user = response.getBody();
         final Map<UUID, Set<Role>> rolesInOrganizations = new HashMap<>();
 
-        for (final Organization organization : user.organization) {
-            final Set<Role> roles = organization.role.stream()
-                .filter(RoleUtil::isRoleMappableToEnum)
-                .map(Role::valueOf)
-                .collect(Collectors.toSet());
-            rolesInOrganizations.put(organization.uuid, roles);
+        if (user != null) {
+            for (final Organization organization : user.organization) {
+                final Set<Role> roles = organization.role.stream()
+                        .filter(RoleUtil::isRoleMappableToEnum)
+                        .map(Role::valueOf)
+                        .collect(Collectors.toSet());
+                rolesInOrganizations.put(organization.uuid, roles);
+            }
+            return new YtiUser(user.email, user.firstName, user.lastName, user.id,
+                    user.superuser, user.newlyCreated, user.tokenCreatedAt,
+                    user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
         }
+        return YtiUser.ANONYMOUS_USER;
+    }
 
-        return new YtiUser(user.email, user.firstName, user.lastName, user.id, user.superuser, user.newlyCreated, user.tokenCreatedAt, user.tokenInvalidationAt, rolesInOrganizations, user.containerUri, user.tokenRole);
+    private boolean hasValue(String value) {
+        return value != null && !value.isEmpty();
     }
 }
 

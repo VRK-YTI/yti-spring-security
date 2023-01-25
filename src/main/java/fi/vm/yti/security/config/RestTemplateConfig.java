@@ -7,11 +7,13 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.SSLContexts;
-import org.apache.http.ssl.TrustStrategy;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactoryBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.ssl.TrustStrategy;
 
 public interface RestTemplateConfig {
 
@@ -24,9 +26,16 @@ public interface RestTemplateConfig {
                 .loadTrustMaterial(null, naivelyAcceptingTrustStrategy)
                 .build();
 
+            PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+                    .setSSLSocketFactory(
+                            SSLConnectionSocketFactoryBuilder.create()
+                                    .setSslContext(sslContext)
+                                    .build()
+                    ).build();
+
             return HttpClients.custom()
-                .setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
-                .build();
+                    .setConnectionManager(connectionManager)
+                    .build();
 
         } catch (final NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
             throw new RuntimeException(e);
