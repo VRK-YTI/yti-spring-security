@@ -302,7 +302,8 @@ public class SecurityBaseConfig {
         };
 
         return http
-            .securityMatcher("/**/*")
+            //.authorizeHttpRequests().anyRequest().authenticated()
+            //.and()
             .addFilter(authenticationFilter())
             .addFilterBefore(tokenAuthenticationFilter(), RequestAttributeAuthenticationFilter.class)
             .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
