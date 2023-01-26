@@ -24,10 +24,15 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationManagerResolver;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.ObjectPostProcessor;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.authentication.AuthenticationManagerFactoryBean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
@@ -98,7 +103,7 @@ public class SecurityBaseConfig {
         authenticationFilter.setCheckForPrincipalChanges(true);
         authenticationFilter.setInvalidateSessionOnPrincipalChange(false);
         authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource());
-        authenticationFilter.setAuthenticationManager(authentication -> authentication);
+        authenticationFilter.setAuthenticationManager(authenticationManager());
         authenticationFilter.setAuthenticationSuccessHandler((request, response, authentication) -> {
             final YtiUser principal = (YtiUser) authentication.getPrincipal();
             if (principal.isNewlyCreated()) {
@@ -256,6 +261,25 @@ public class SecurityBaseConfig {
     //protected void configure(final AuthenticationManagerBuilder auth) {
     //    auth.authenticationProvider(authenticationProvider());
     //}
+
+    @Bean
+    AuthenticationManager authenticationManager() {
+        try {
+            return new AuthenticationManagerBuilder(new ObjectPostProcessor<Object>() {
+
+                @Override
+                public <Object> Object postProcess(Object object) {
+                    System.out.println("POSTPROCESS");
+                    System.out.println(object);
+                    return object;
+                }
+            })
+                    .authenticationProvider(authenticationProvider())
+                    .build();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
