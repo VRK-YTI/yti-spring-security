@@ -29,11 +29,13 @@ import org.springframework.security.authentication.AuthenticationManagerResolver
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.authentication.AuthenticationManagerFactoryBean;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.AuthenticationUserDetailsService;
 import org.springframework.security.web.SecurityFilterChain;
@@ -234,7 +236,6 @@ public class SecurityBaseConfig {
 
     @Bean
     AuthenticationProvider authenticationProvider() {
-
         final PreAuthenticatedAuthenticationProvider authenticationProvider = new PreAuthenticatedAuthenticationProvider();
         authenticationProvider.setPreAuthenticatedUserDetailsService(authenticatedUserDetailsService());
         return authenticationProvider;
@@ -258,20 +259,18 @@ public class SecurityBaseConfig {
         };
     }
 
-    //protected void configure(final AuthenticationManagerBuilder auth) {
-    //    auth.authenticationProvider(authenticationProvider());
-    //}
-
+    /**
+     * Create authentication manager for setting AuthenticationProvider
+     * @return authenticationManager
+     */
     @Bean
     AuthenticationManager authenticationManager() {
         try {
-            return new AuthenticationManagerBuilder(new ObjectPostProcessor<Object>() {
+            return new AuthenticationManagerBuilder(new ObjectPostProcessor<>() {
 
                 @Override
-                public <Object> Object postProcess(Object object) {
-                    System.out.println("POSTPROCESS");
-                    System.out.println(object);
-                    return object;
+                public <Object> Object postProcess(Object o) {
+                    return o;
                 }
             })
                     .authenticationProvider(authenticationProvider())
@@ -325,7 +324,7 @@ public class SecurityBaseConfig {
         };
 
         return http
-                .authenticationProvider(authenticationProvider())
+                // .authenticationProvider(authenticationProvider())
                 .addFilter(authenticationFilter())
                 .addFilterBefore(tokenAuthenticationFilter(), RequestAttributeAuthenticationFilter.class)
                 .addFilterBefore(fakeUserSettingFilter, RequestAttributeAuthenticationFilter.class)
