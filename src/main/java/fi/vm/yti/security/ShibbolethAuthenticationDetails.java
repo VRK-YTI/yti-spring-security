@@ -2,7 +2,7 @@ package fi.vm.yti.security;
 
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.jetbrains.annotations.NotNull;
 
