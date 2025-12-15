@@ -47,12 +47,13 @@ sourceCompatibility = 17
 targetCompatibility = 17
 
 ext {
-    springVersion = '6.0.1'
+    springVersion = '6.3.10'
 }
 
 publishing {
     publications {
         maven(MavenPublication) {
+            from components.java
             groupId 'fi.vm.yti'
             artifactId 'yti-spring-security'
             version project.version
@@ -60,7 +61,6 @@ publishing {
             pom.withXml {
                 asNode().appendNode('description', 'Common spring security configuration')
             }
-            artifact jar
             artifact sourceJar {
                 classifier "sources"
             }
@@ -84,7 +84,7 @@ dependencies {
     implementation "org.springframework.security:spring-security-core:$springVersion"
     implementation "org.springframework.security:spring-security-config:$springVersion"
     implementation "org.springframework.security:spring-security-web:$springVersion"
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
     implementation "com.google.code.findbugs:jsr305:3.0.2"
     implementation "org.jetbrains:annotations:15.0"
 
